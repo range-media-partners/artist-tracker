@@ -1,0 +1,29 @@
+# Secrets — never bake these into the image (sourced from Secret Manager)
+config/config.env
+config/*.env
+*.env
+
+# Local Python virtual environment (huge, machine-specific, not needed in image)
+music_label_venv/
+venv/
+*.venv
+
+# Python bytecode caches (regenerated automatically)
+__pycache__/
+*.pyc
+*.pyo
+
+# Local runtime output — not part of the image
+logs/*
+reports/*
+data/
+
+# Local dev cruft
+.DS_Store
+.git/
+.gitignore
+*.log
+
+# Private key
+*.p8
+*.pub

@@ -1,0 +1,50 @@
+# pipeline-workflow.yaml
+# Daily artist-tracker pipeline, dependency-ordered.
+#   daily_collect  →  (check_thresholds  ||  generate_report)  →  send_report
+# Each Cloud Run job is invoked via the run.googleapis.com connector, which
+# waits for the job to COMPLETE before proceeding. A failed step stops the chain.
+
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - project_id: "range-music-label"
+          - region: "us-west2"
+
+    # ── Step 1: collect. Everything depends on this. ──────────────────
+    - run_daily_collect:
+        call: googleapis.run.v1.namespaces.jobs.run
+        args:
+          name: ${"namespaces/" + project_id + "/jobs/daily-collect"}
+          location: ${region}
+        result: collect_result
+
+    # ── Step 2: checks + report, in parallel (both depend only on collect) ──
+    - checks_and_report:
+        parallel:
+          branches:
+            - check_thresholds_branch:
+                steps:
+                  - run_check_thresholds:
+                      call: googleapis.run.v1.namespaces.jobs.run
+                      args:
+                        name: ${"namespaces/" + project_id + "/jobs/check-thresholds"}
+                        location: ${region}
+            - generate_report_branch:
+                steps:
+                  - run_generate_report:
+                      call: googleapis.run.v1.namespaces.jobs.run
+                      args:
+                        name: ${"namespaces/" + project_id + "/jobs/generate-report"}
+                        location: ${region}
+
+    # ── Step 3: send. Only runs if the parallel block above succeeded. ──
+    - run_send_report:
+        call: googleapis.run.v1.namespaces.jobs.run
+        args:
+          name: ${"namespaces/" + project_id + "/jobs/send-report"}
+          location: ${region}
+
+    - done:
+        return: "Pipeline complete."

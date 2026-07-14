@@ -1,0 +1,30 @@
+# Secrets — NEVER commit these
+config/config.env
+config/*.env
+*.env
+
+# Private keys — NEVER commit
+*.p8
+*.pub
+.snowflake_keys/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+music_label_venv/
+venv/
+*.venv
+
+# Runtime output
+logs/*
+reports/*
+data/uploads/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+
+# Keep the directory structure but not the contents
+!logs/.gitkeep
+!reports/.gitkeep
