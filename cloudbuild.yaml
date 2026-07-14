@@ -1,0 +1,34 @@
+steps:
+  # 1. Build the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest', '.']
+
+  # 2. Push it to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+
+  # 3. Update every Cloud Run Job to pick up the new image immediately
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'jobs', 'update', 'daily-collect', '--region=us-west2', '--image=us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'jobs', 'update', 'check-thresholds', '--region=us-west2', '--image=us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'jobs', 'update', 'generate-report', '--region=us-west2', '--image=us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'jobs', 'update', 'generate-deepdive', '--region=us-west2', '--image=us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'jobs', 'update', 'send-report', '--region=us-west2', '--image=us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+
+  # 4. Update the Flask Service (this is the one that needs an explicit redeploy
+  #    to actually serve the new image — Services don't auto-pick-up :latest)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'services', 'update', 'handles-tool', '--region=us-west2', '--image=us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest']
+
+images:
+  - 'us-west2-docker.pkg.dev/$PROJECT_ID/artist-tracker-repo/artist-tracker:latest'
